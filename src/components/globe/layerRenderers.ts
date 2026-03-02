@@ -56,13 +56,18 @@ const entityPixelSize = (entity: WorldEntity) => {
   }
 }
 
-const shouldShowLabel = (entity: WorldEntity) =>
-  entity.entityType === 'satellite' ||
-  entity.entityType === 'aircraft_military' ||
-  entity.entityType === 'news_item' ||
-  entity.entityType === 'seismic_event'
+const shouldShowLabel = (entity: WorldEntity, showLabels: boolean) =>
+  showLabels &&
+  (entity.entityType === 'satellite' ||
+    entity.entityType === 'aircraft_military' ||
+    entity.entityType === 'news_item' ||
+    entity.entityType === 'seismic_event')
 
-const createEntity = (worldEntity: WorldEntity, selectedEntityId: string | null) => {
+const createEntity = (
+  worldEntity: WorldEntity,
+  selectedEntityId: string | null,
+  showLabels: boolean,
+) => {
   const color = entityColor(worldEntity, selectedEntityId === worldEntity.entityId)
   const point = {
     pixelSize: entityPixelSize(worldEntity),
@@ -80,7 +85,7 @@ const createEntity = (worldEntity: WorldEntity, selectedEntityId: string | null)
       worldEntity.position.alt ?? 0,
     ),
     point,
-    label: shouldShowLabel(worldEntity)
+    label: shouldShowLabel(worldEntity, showLabels)
       ? {
           text: worldEntity.label.slice(0, 28),
           font: '12px "Segoe UI", sans-serif',
@@ -133,11 +138,12 @@ export const syncLayerEntities = (
   dataSource: CustomDataSource,
   entities: WorldEntity[],
   selectedEntityId: string | null,
+  showLabels: boolean,
 ) => {
   const collection: EntityCollection = dataSource.entities
   collection.removeAll()
   entities.forEach((entity) => {
-    collection.add(createEntity(entity, selectedEntityId))
+    collection.add(createEntity(entity, selectedEntityId, showLabels))
   })
 
   if (!viewer.dataSources.contains(dataSource)) {

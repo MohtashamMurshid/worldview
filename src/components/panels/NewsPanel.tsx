@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { selectFilteredEntities, useWorldviewStore } from '../../state/worldviewStore'
+import { getFilteredEntities, useWorldviewStore } from '../../state/worldviewStore'
 
 interface NewsPanelProps {
   onFocusEntity: (entityId: string) => void
@@ -7,14 +7,36 @@ interface NewsPanelProps {
 
 export const NewsPanel = ({ onFocusEntity }: NewsPanelProps) => {
   const entitiesById = useWorldviewStore((state) => state.entitiesById)
+  const layerSettings = useWorldviewStore((state) => state.layerSettings)
+  const searchQuery = useWorldviewStore((state) => state.searchQuery)
+  const newsFilter = useWorldviewStore((state) => state.newsFilter)
+  const seismicFilter = useWorldviewStore((state) => state.seismicFilter)
+  const flightFilter = useWorldviewStore((state) => state.flightFilter)
+  const mapCenter = useWorldviewStore((state) => state.mapCenter)
 
   const newsItems = useMemo(
     () =>
-      Object.values(entitiesById)
+      getFilteredEntities({
+        entitiesById,
+        layerSettings,
+        searchQuery,
+        newsFilter,
+        seismicFilter,
+        flightFilter,
+        mapCenter,
+      })
         .filter((entity) => entity.entityType === 'news_item')
         .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, 6),
-    [entitiesById],
+    [
+      entitiesById,
+      flightFilter,
+      layerSettings,
+      mapCenter,
+      newsFilter,
+      searchQuery,
+      seismicFilter,
+    ],
   )
 
   return (

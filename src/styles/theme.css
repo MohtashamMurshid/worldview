@@ -1,0 +1,13 @@
+:root {
+  --wv-bg-0: #01040b;
+  --wv-bg-1: #020914;
+  --wv-bg-2: #04101d;
+  --wv-panel-border: rgb(95 183 255 / 24%);
+  --wv-panel-bg: rgb(2 14 24 / 78%);
+  --wv-text-primary: #d3efff;
+  --wv-text-muted: #7fa4b7;
+  --wv-accent: #5ad1ff;
+  --wv-ok: #6fffbe;
+  --wv-warn: #ffd275;
+  --wv-bad: #ff8484;
+}

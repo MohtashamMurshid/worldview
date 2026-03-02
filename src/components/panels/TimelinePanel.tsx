@@ -1,4 +1,5 @@
 import { useWorldviewStore } from '../../state/worldviewStore'
+import { RangeField } from '../common/RangeField'
 
 export const TimelinePanel = () => {
   const seismicFilter = useWorldviewStore((state) => state.seismicFilter)
@@ -41,18 +42,18 @@ export const TimelinePanel = () => {
           </select>
         </label>
 
-        <label>
-          News Radius (km)
-          <input
-            type="range"
+        <div>
+          <span>News Radius (km)</span>
+          <RangeField
+            label=""
             min={100}
             max={8000}
             step={100}
             value={newsFilter.radiusKm}
-            onChange={(event) => setNewsFilter({ radiusKm: Number(event.target.value) })}
+            valueSuffix="km around camera center"
+            onChange={(value) => setNewsFilter({ radiusKm: value })}
           />
-          <small>{newsFilter.radiusKm} km around camera center</small>
-        </label>
+        </div>
 
         <label>
           News Category
@@ -91,45 +92,39 @@ export const TimelinePanel = () => {
           />
         </label>
 
-        <label>
-          Minimum Altitude (m)
-          <input
-            type="range"
+        <div>
+          <span>Minimum Altitude (m)</span>
+          <RangeField
+            label=""
             min={0}
             max={13_500}
             step={100}
             value={flightFilter.altitudeRange[0]}
-            onChange={(event) =>
+            valueSuffix="m"
+            onChange={(value) =>
               setFlightFilter({
-                altitudeRange: [
-                  Number(event.target.value),
-                  Math.max(Number(event.target.value), flightFilter.altitudeRange[1]),
-                ],
+                altitudeRange: [value, Math.max(value, flightFilter.altitudeRange[1])],
               })
             }
           />
-          <small>{flightFilter.altitudeRange[0]} m</small>
-        </label>
+        </div>
 
-        <label>
-          Minimum Speed (kts)
-          <input
-            type="range"
+        <div>
+          <span>Minimum Speed (kts)</span>
+          <RangeField
+            label=""
             min={0}
             max={700}
             step={10}
             value={flightFilter.speedRange[0]}
-            onChange={(event) =>
+            valueSuffix="kts"
+            onChange={(value) =>
               setFlightFilter({
-                speedRange: [
-                  Number(event.target.value),
-                  Math.max(Number(event.target.value), flightFilter.speedRange[1]),
-                ],
+                speedRange: [value, Math.max(value, flightFilter.speedRange[1])],
               })
             }
           />
-          <small>{flightFilter.speedRange[0]} kts</small>
-        </label>
+        </div>
       </div>
     </section>
   )

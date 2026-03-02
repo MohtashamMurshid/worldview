@@ -14,6 +14,21 @@ export const useKeyboardShortcuts = () => {
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      const isTypingField =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target?.isContentEditable
+
+      if ((event.key === '/' || (event.key.toLowerCase() === 'k' && (event.ctrlKey || event.metaKey))) && !isTypingField) {
+        event.preventDefault()
+        window.dispatchEvent(new CustomEvent('worldview:focus-search'))
+        return
+      }
+
+      if (isTypingField) return
+
       if (event.key.toLowerCase() === 'm') {
         const currentIndex = ORDERED_MODES.indexOf(displayMode)
         const nextIndex = (currentIndex + 1) % ORDERED_MODES.length

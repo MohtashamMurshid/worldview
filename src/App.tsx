@@ -10,6 +10,7 @@ import { FeedHealthPanel } from './components/panels/FeedHealthPanel'
 import { LayerManagerPanel } from './components/panels/LayerManagerPanel'
 import { NewsPanel } from './components/panels/NewsPanel'
 import { SearchPanel } from './components/panels/SearchPanel'
+import { SettingsPanel } from './components/panels/SettingsPanel'
 import { TimelinePanel } from './components/panels/TimelinePanel'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useRealtimeOrchestrator } from './hooks/useRealtimeOrchestrator'
@@ -19,6 +20,7 @@ import './App.css'
 function App() {
   const globeRef = useRef<WorldGlobeHandle | null>(null)
   const cleanUi = useWorldviewStore((state) => state.displayTuning.cleanUi)
+  const showFeedHealth = useWorldviewStore((state) => state.uiSettings.showFeedHealth)
 
   useRealtimeOrchestrator()
   useKeyboardShortcuts()
@@ -32,7 +34,6 @@ function App() {
             <SearchPanel onFocusEntity={(entityId) => globeRef.current?.focusEntity(entityId)} />
             <LayerManagerPanel />
             <CameraPresetsPanel onFlyTo={(lat, lon, height) => globeRef.current?.flyTo(lat, lon, height)} />
-            <FeedHealthPanel />
           </aside>
         ) : null}
 
@@ -44,6 +45,8 @@ function App() {
         {!cleanUi ? (
           <aside className="right-rail">
             <DisplayControlsPanel />
+            <SettingsPanel />
+            {showFeedHealth ? <FeedHealthPanel /> : null}
             <TimelinePanel />
             <EntityInspectorPanel onCenterEntity={(entityId) => globeRef.current?.focusEntity(entityId)} />
             <NewsPanel onFocusEntity={(entityId) => globeRef.current?.focusEntity(entityId)} />

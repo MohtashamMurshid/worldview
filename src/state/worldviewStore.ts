@@ -7,6 +7,13 @@ import type { LayerId, LayerSettingsRecord } from '../types/layers'
 import { distanceKm } from '../utils/geo'
 import { subtractWindowMs } from '../utils/time'
 
+interface UiSettings {
+  showGridOverlay: boolean
+  showEntityLabels: boolean
+  showFeedHealth: boolean
+  highDensityMode: boolean
+}
+
 interface WorldviewState {
   entitiesById: Record<string, WorldEntity>
   sourceEntityIds: Record<string, string[]>
@@ -19,6 +26,7 @@ interface WorldviewState {
   newsFilter: NewsFilter
   seismicFilter: SeismicFilter
   flightFilter: FlightFilter
+  uiSettings: UiSettings
   mapCenter: { lat: number; lon: number }
   searchQuery: string
   setSourceEntities: (source: string, entities: WorldEntity[]) => void
@@ -34,6 +42,11 @@ interface WorldviewState {
   setNewsFilter: (patch: Partial<NewsFilter>) => void
   setSeismicFilter: (patch: Partial<SeismicFilter>) => void
   setFlightFilter: (patch: Partial<FlightFilter>) => void
+  setUiSettings: (patch: Partial<UiSettings>) => void
+  toggleGridOverlay: () => void
+  toggleEntityLabels: () => void
+  toggleFeedHealth: () => void
+  toggleHighDensityMode: () => void
   setSearchQuery: (value: string) => void
 }
 
@@ -58,6 +71,12 @@ export const useWorldviewStore = create<WorldviewState>((set) => ({
     callsign: '',
     altitudeRange: [0, 13_500],
     speedRange: [0, 700],
+  },
+  uiSettings: {
+    showGridOverlay: true,
+    showEntityLabels: true,
+    showFeedHealth: true,
+    highDensityMode: false,
   },
   mapCenter: { lat: 20, lon: 0 },
   searchQuery: '',
@@ -152,6 +171,41 @@ export const useWorldviewStore = create<WorldviewState>((set) => ({
         ...patch,
       },
     })),
+  setUiSettings: (patch) =>
+    set((state) => ({
+      uiSettings: {
+        ...state.uiSettings,
+        ...patch,
+      },
+    })),
+  toggleGridOverlay: () =>
+    set((state) => ({
+      uiSettings: {
+        ...state.uiSettings,
+        showGridOverlay: !state.uiSettings.showGridOverlay,
+      },
+    })),
+  toggleEntityLabels: () =>
+    set((state) => ({
+      uiSettings: {
+        ...state.uiSettings,
+        showEntityLabels: !state.uiSettings.showEntityLabels,
+      },
+    })),
+  toggleFeedHealth: () =>
+    set((state) => ({
+      uiSettings: {
+        ...state.uiSettings,
+        showFeedHealth: !state.uiSettings.showFeedHealth,
+      },
+    })),
+  toggleHighDensityMode: () =>
+    set((state) => ({
+      uiSettings: {
+        ...state.uiSettings,
+        highDensityMode: !state.uiSettings.highDensityMode,
+      },
+    })),
   setSearchQuery: (value) => set({ searchQuery: value }),
 }))
 
@@ -171,7 +225,18 @@ export const selectAllEntities = (state: WorldviewState) => Object.values(state.
 export const selectEntityById = (state: WorldviewState, id: string | null) =>
   id ? state.entitiesById[id] : null
 
-export const selectFilteredEntities = (state: WorldviewState) => {
+type FilterContext = Pick<
+  WorldviewState,
+  | 'entitiesById'
+  | 'seismicFilter'
+  | 'newsFilter'
+  | 'flightFilter'
+  | 'layerSettings'
+  | 'searchQuery'
+  | 'mapCenter'
+>
+
+export const getFilteredEntities = (state: FilterContext) => {
   const entities = Object.values(state.entitiesById)
   const seismicWindowStart = subtractWindowMs(state.seismicFilter.timeWindow)
   const newsWindowStart = subtractWindowMs(state.newsFilter.timeWindow)
@@ -222,8 +287,10 @@ export const selectFilteredEntities = (state: WorldviewState) => {
   })
 }
 
+export const selectFilteredEntities = (state: WorldviewState) => getFilteredEntities(state)
+
 export const selectEntityCounts = (state: WorldviewState) =>
-  selectFilteredEntities(state).reduce<Record<WorldEntityType, number>>(
+  getFilteredEntities(state).reduce<Record<WorldEntityType, number>>(
     (acc, entity) => {
       acc[entity.entityType] += 1
       return acc

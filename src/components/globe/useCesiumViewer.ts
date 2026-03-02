@@ -69,9 +69,22 @@ export const useCesiumViewer = ({
         })
     }
 
+    let lastMapCenterUpdateAt = 0
+    let lastLat = Number.NaN
+    let lastLon = Number.NaN
     const cameraChanged = () => {
+      const now = Date.now()
+      if (now - lastMapCenterUpdateAt < 250) return
       const position = cesiumViewer.camera.positionCartographic
-      onMapCenterUpdate((position.latitude * 180) / Math.PI, (position.longitude * 180) / Math.PI)
+      const lat = (position.latitude * 180) / Math.PI
+      const lon = (position.longitude * 180) / Math.PI
+      if (!Number.isNaN(lastLat) && Math.abs(lat - lastLat) < 0.01 && Math.abs(lon - lastLon) < 0.01) {
+        return
+      }
+      lastMapCenterUpdateAt = now
+      lastLat = lat
+      lastLon = lon
+      onMapCenterUpdate(lat, lon)
     }
     cesiumViewer.camera.changed.addEventListener(cameraChanged)
 

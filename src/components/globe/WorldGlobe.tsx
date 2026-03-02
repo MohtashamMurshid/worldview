@@ -2,7 +2,7 @@ import { CustomDataSource, Math as CesiumMath, Cartesian3 } from 'cesium'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react'
 import { useCesiumViewer } from './useCesiumViewer'
 import { syncLayerEntities } from './layerRenderers'
-import { useWorldviewStore, selectEntityById, selectFilteredEntities } from '../../state/worldviewStore'
+import { useWorldviewStore, selectEntityById, getFilteredEntities } from '../../state/worldviewStore'
 import { getModeClassName, getModeStyle } from './postFx'
 
 export interface WorldGlobeHandle {
@@ -17,22 +17,41 @@ export const WorldGlobe = forwardRef<WorldGlobeHandle>(function WorldGlobe(_prop
   const entitiesById = useWorldviewStore((state) => state.entitiesById)
   const layerSettings = useWorldviewStore((state) => state.layerSettings)
   const searchQuery = useWorldviewStore((state) => state.searchQuery)
+  const newsFilter = useWorldviewStore((state) => state.newsFilter)
+  const seismicFilter = useWorldviewStore((state) => state.seismicFilter)
+  const flightFilter = useWorldviewStore((state) => state.flightFilter)
+  const mapCenter = useWorldviewStore((state) => state.mapCenter)
+  const showGridOverlay = useWorldviewStore((state) => state.uiSettings.showGridOverlay)
+  const showEntityLabels = useWorldviewStore((state) => state.uiSettings.showEntityLabels)
+  const highDensityMode = useWorldviewStore((state) => state.uiSettings.highDensityMode)
   const selectedEntityId = useWorldviewStore((state) => state.selectedEntityId)
   const trackedEntityId = useWorldviewStore((state) => state.trackedEntityId)
   const selectEntity = useWorldviewStore((state) => state.selectEntity)
   const setMapCenter = useWorldviewStore((state) => state.setMapCenter)
   const trackedEntity = useWorldviewStore((state) => selectEntityById(state, trackedEntityId))
   const dataSource = useMemo(() => new CustomDataSource('worldview-layers'), [])
-  
-  const entities = useMemo(() => selectFilteredEntities({ 
-    entitiesById, 
-    layerSettings, 
-    searchQuery, 
-    newsFilter: useWorldviewStore.getState().newsFilter,
-    seismicFilter: useWorldviewStore.getState().seismicFilter,
-    flightFilter: useWorldviewStore.getState().flightFilter,
-    mapCenter: useWorldviewStore.getState().mapCenter,
-  } as any), [entitiesById, layerSettings, searchQuery])
+
+  const entities = useMemo(
+    () =>
+      getFilteredEntities({
+        entitiesById,
+        layerSettings,
+        searchQuery,
+        newsFilter,
+        seismicFilter,
+        flightFilter,
+        mapCenter,
+      }),
+    [
+      entitiesById,
+      flightFilter,
+      layerSettings,
+      mapCenter,
+      newsFilter,
+      searchQuery,
+      seismicFilter,
+    ],
+  )
 
   const viewer = useCesiumViewer({
     containerRef,
@@ -74,8 +93,38 @@ export const WorldGlobe = forwardRef<WorldGlobeHandle>(function WorldGlobe(_prop
 
   useEffect(() => {
     if (!viewer) return
-    syncLayerEntities(viewer, dataSource, entities, selectedEntityId)
-  }, [dataSource, entities, selectedEntityId, viewer])
+
+    const cameraHeight = viewer.camera.positionCartographic.height
+    const lodEntities = highDensityMode
+      ? entities
+      : entities.filter((entity) => {
+          if (cameraHeight > 10_000_000) {
+            return (
+              entity.entityType === 'satellite' ||
+              entity.entityType === 'aircraft_commercial' ||
+              entity.entityType === 'aircraft_military' ||
+              entity.entityType === 'seismic_event' ||
+              entity.entityType === 'news_item'
+            )
+          }
+          if (cameraHeight > 2_500_000) {
+            return entity.entityType !== 'traffic_agent'
+          }
+          return true
+        })
+
+    const cappedEntities = highDensityMode
+      ? lodEntities
+      : lodEntities.slice(0, cameraHeight > 10_000_000 ? 500 : 1000)
+
+    syncLayerEntities(
+      viewer,
+      dataSource,
+      cappedEntities,
+      selectedEntityId,
+      showEntityLabels,
+    )
+  }, [dataSource, entities, highDensityMode, selectedEntityId, showEntityLabels, viewer])
 
   useEffect(() => {
     if (!viewer) return
@@ -97,9 +146,9 @@ export const WorldGlobe = forwardRef<WorldGlobeHandle>(function WorldGlobe(_prop
 
   return (
     <div className={`viewport mode-shell ${getModeClassName(displayMode)}`} style={getModeStyle(displayTuning)}>
-      <div className="viewport-grid-overlay" />
+      {showGridOverlay ? <div className="viewport-grid-overlay" /> : null}
       <div ref={containerRef} className="globe-container" />
-      <div className="viewport-noise-overlay" />
+      {showGridOverlay ? <div className="viewport-noise-overlay" /> : null}
     </div>
   )
 })

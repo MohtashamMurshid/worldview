@@ -1,5 +1,6 @@
 import { useWorldviewStore } from '../../state/worldviewStore'
 import type { LayerId } from '../../types/layers'
+import { RangeField } from '../common/RangeField'
 
 const orderedLayerIds: LayerId[] = [
   'satellites',
@@ -35,28 +36,22 @@ export const LayerManagerPanel = () => {
                 <span>{layer.label}</span>
               </label>
               <div className="layer-sliders">
-                <label>
-                  Opacity
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={layer.opacity}
-                    onChange={(event) => setLayerOpacity(layer.id, Number(event.target.value))}
-                  />
-                </label>
-                <label>
-                  Intensity
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={layer.intensity}
-                    onChange={(event) => setLayerIntensity(layer.id, Number(event.target.value))}
-                  />
-                </label>
+                <RangeField
+                  label="Opacity"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={layer.opacity}
+                  onChange={(value) => setLayerOpacity(layer.id, value)}
+                />
+                <RangeField
+                  label="Intensity"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={layer.intensity}
+                  onChange={(value) => setLayerIntensity(layer.id, value)}
+                />
               </div>
             </div>
           )

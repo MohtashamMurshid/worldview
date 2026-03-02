@@ -1,5 +1,7 @@
 import { DISPLAY_MODE_PRESETS } from '../../config/displayModes'
 import { useWorldviewStore } from '../../state/worldviewStore'
+import { RangeField } from '../common/RangeField'
+import { ToggleChip } from '../common/ToggleChip'
 
 export const DisplayControlsPanel = () => {
   const displayMode = useWorldviewStore((state) => state.displayMode)
@@ -23,53 +25,40 @@ export const DisplayControlsPanel = () => {
       </div>
 
       <div className="slider-group">
-        <label>
-          Intensity
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={displayTuning.intensity}
-            onChange={(event) => setDisplayTuning({ intensity: Number(event.target.value) })}
-          />
-        </label>
-        <label>
-          Sharpen
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={displayTuning.sharpness}
-            onChange={(event) => setDisplayTuning({ sharpness: Number(event.target.value) })}
-          />
-        </label>
-        <label>
-          Noise
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={displayTuning.noise}
-            onChange={(event) => setDisplayTuning({ noise: Number(event.target.value) })}
-          />
-        </label>
-        <label>
-          Bloom
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={displayTuning.bloom}
-            onChange={(event) => setDisplayTuning({ bloom: Number(event.target.value) })}
-          />
-        </label>
+        <RangeField
+          label="Intensity"
+          min={0}
+          max={100}
+          value={displayTuning.intensity}
+          onChange={(value) => setDisplayTuning({ intensity: value })}
+        />
+        <RangeField
+          label="Sharpen"
+          min={0}
+          max={100}
+          value={displayTuning.sharpness}
+          onChange={(value) => setDisplayTuning({ sharpness: value })}
+        />
+        <RangeField
+          label="Noise"
+          min={0}
+          max={100}
+          value={displayTuning.noise}
+          onChange={(value) => setDisplayTuning({ noise: value })}
+        />
+        <RangeField
+          label="Bloom"
+          min={0}
+          max={100}
+          value={displayTuning.bloom}
+          onChange={(value) => setDisplayTuning({ bloom: value })}
+        />
       </div>
-      <button
-        className={`hud-chip ${displayTuning.cleanUi ? 'active' : ''}`}
-        onClick={() => setDisplayTuning({ cleanUi: !displayTuning.cleanUi })}
-      >
-        Clean UI
-      </button>
+      <ToggleChip
+        label="Clean UI"
+        active={displayTuning.cleanUi}
+        onToggle={() => setDisplayTuning({ cleanUi: !displayTuning.cleanUi })}
+      />
     </section>
   )
 }
