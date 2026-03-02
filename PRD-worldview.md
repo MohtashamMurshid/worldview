@@ -16,6 +16,7 @@ WorldView must provide a continuously updating, operator-friendly 3D command vie
 - Public CCTV feed projection into 3D scene context
 - Street traffic simulation
 - Earthquake/seismic event overlays
+- Real-time area-based news overlays from open data sources
 - Tactical display modes (CRT, Night Vision, FLIR-like)
 
 ## 3) Goals and Non-Goals
@@ -193,6 +194,23 @@ WorldView must provide a continuously updating, operator-friendly 3D command vie
 - User can combine at least 4 simultaneous layers while maintaining usability.
 - Investigative workflow from location search -> layer filter -> entity inspect works end-to-end.
 
+### 7.11 Real-Time Area News Layer
+#### Requirements
+- Ingest open-data news/event feeds (RSS/GeoRSS/API where available) and normalize to geospatial news entities.
+- Resolve/attach location for each news item using explicit coordinates, place metadata, or geocoding fallback.
+- Render map-linked news markers/clusters with recency and relevance scoring.
+- Support filters by:
+  - Radius around map center / selected area
+  - Time window (e.g., last 1h, 6h, 24h, 7d)
+  - Category/topic (disaster, transport, conflict, infrastructure, weather, general)
+- Provide detail panel with headline, source, publish time, short summary, and outbound link.
+- Correlate news with active layers by proximity (e.g., nearby airport, seismic event, or CCTV anchor).
+
+#### Acceptance Criteria
+- User can toggle area news independently and see new items appear on refresh cadence.
+- Selecting a news marker opens article metadata and source link.
+- Area/time filters reduce visible news set deterministically.
+
 ## 8) Data Sources and Contracts
 
 ### 8.1 Source Inventory
@@ -203,15 +221,21 @@ WorldView must provide a continuously updating, operator-friendly 3D command vie
 - Satellite telemetry source(s) (active orbit objects)
 - Public CCTV feed directories/endpoints
 - Seismic event feed(s)
+- Open-data news/event feeds (RSS/GeoRSS/public APIs)
 
 ### 8.2 Normalized Entity Model
 All ingested data is normalized into a shared schema envelope:
-- `entityType`: `satellite | aircraft_commercial | aircraft_military | cctv_camera | seismic_event | traffic_agent | landmark`
+- `entityType`: `satellite | aircraft_commercial | aircraft_military | cctv_camera | seismic_event | traffic_agent | landmark | news_item`
 - `source`: provider name
 - `entityId`: globally unique stable identifier
 - `position`: `{lat, lon, alt?}`
 - `heading?`, `speed?`, `status?`, `timestamp`, `metadata`
 - `quality`: freshness score + confidence/availability markers
+
+For `news_item`, `metadata` should include:
+- `headline`, `url`, `publishedAt`, `category`, `summary`
+- `geoResolution`: `explicit | inferred | geocoded`
+- `relevanceScore` and optional `relatedEntityIds`
 
 ### 8.3 Refresh and Staleness
 - Each feed has configurable poll/stream cadence.
@@ -243,6 +267,7 @@ flowchart LR
   dataOrchestrator --> seismicFeed[SeismicFeed]
   dataOrchestrator --> cctvFeed[CCTVFeed]
   dataOrchestrator --> osmFeed[OpenStreetMapData]
+  dataOrchestrator --> newsFeed[AreaNewsFeed]
 
   dataOrchestrator --> unifiedStore[UnifiedEntityStore]
   unifiedStore --> renderEngine
@@ -271,6 +296,7 @@ flowchart LR
 - Seismic: update every 30-120 seconds.
 - CCTV availability: health check + reconnect policy every 15-60 seconds.
 - Traffic simulation: local deterministic updates every frame/tick.
+- Area news feeds: ingest every 60-300 seconds with dedupe and recency scoring.
 
 ### 10.2 Reliability Requirements
 - Connector retries with exponential backoff.
@@ -292,6 +318,7 @@ flowchart LR
 - **Traffic**: road-constrained animated flow simulation in selected cities.
 - **CCTV**: geolocated cameras selectable with live stream panel.
 - **Seismic**: live events rendered with magnitude/time context.
+- **Area news**: open-data news items mapped by location with area/time/category filtering.
 - **Layer manager**: independent toggles + combined multi-layer analysis.
 
 ## 12) End-to-End Test Plan
@@ -306,6 +333,7 @@ flowchart LR
 - **Scenario B**: Enable satellites -> follow one object -> switch to FLIR -> return to normal mode.
 - **Scenario C**: Seismic event appears -> filter to last 24h -> inspect event details.
 - **Scenario D**: Traffic simulation on -> camera fly-through -> verify smooth interaction with other layers enabled.
+- **Scenario E**: Select city -> enable area news -> filter last 6h + disaster topic -> open article -> correlate with nearby seismic/camera layers.
 
 ### 12.3 Performance Tests
 - Measure FPS at low/medium/high layer density.
@@ -326,6 +354,7 @@ flowchart LR
 - OSM landmarks/presets and traffic simulation.
 - CCTV ingest, geolocation mapping, and stream panels.
 - Seismic feed ingest and visualization.
+- Area news ingest, geotagging, map clustering, and detail panel.
 
 ### Phase 4: Integration and Release Readiness (Week 4)
 - Unified layer manager, timeline/search polish.
@@ -372,6 +401,50 @@ flowchart LR
 - OpenSky Network: https://opensky-network.org
 - ADS-B Exchange: https://adsbexchange.com
 - CesiumJS: https://cesium.com
+- GDELT Project (events/news metadata): https://www.gdeltproject.org
+- ReliefWeb API (humanitarian/disaster news): https://api.reliefweb.int
+- USGS Earthquake Feed (event alerts): https://earthquake.usgs.gov/earthquakes/feed/
+- NASA EONET API (natural event metadata): https://eonet.gsfc.nasa.gov/docs/v3
+
+## 18) Appendix: Recommended Open Area-News Sources
+
+### 18.1 Primary Recommended Sources
+- **GDELT 2.1 Events/API**
+  - Best for: high-volume global event/news signals and broad geographic coverage.
+  - Notes: use relevance filtering and confidence scoring to reduce noise.
+- **ReliefWeb API**
+  - Best for: disasters, humanitarian crises, and operational field context.
+  - Notes: high-quality categorization for disaster-focused area monitoring.
+- **USGS Feeds**
+  - Best for: fast, authoritative earthquake event alerts that can also be surfaced in news context.
+  - Notes: useful for auto-correlating with seismic layer and nearby headlines.
+- **NASA EONET**
+  - Best for: open natural event metadata (wildfires, storms, volcanic events).
+  - Notes: complements general news feeds with event-centric geospatial records.
+
+### 18.2 Optional Regional Sources
+- **Local government/city RSS or GeoRSS feeds**
+  - Best for: traffic advisories, city alerts, weather warnings, and local incidents.
+  - Notes: quality and uptime vary; integrate through source-specific adapters.
+- **Public broadcaster or wire-service feeds**
+  - Best for: near-real-time breaking updates by region.
+  - Notes: require strict dedupe and location resolution due to repeated stories.
+
+### 18.3 Ingestion and Quality Rules (Area News)
+- Require at least one geospatial anchor per item:
+  - Explicit coordinates, GeoRSS geometry, or resolved place-to-coordinate geocoding.
+- Deduplicate by source URL + normalized headline hash + time window.
+- Assign `relevanceScore` using:
+  - Distance to active viewport center
+  - Recency decay
+  - Category weighting
+  - Cross-layer proximity (aircraft, seismic, CCTV, landmarks)
+- Mark low-confidence geocodes as `geoResolution=inferred` and visually down-rank.
+
+### 18.4 Suggested Refresh Defaults
+- Global feeds (GDELT/ReliefWeb): every 120-300 seconds.
+- Event feeds (USGS/EONET): every 60-180 seconds.
+- Regional RSS/GeoRSS: every 60-300 seconds depending on publisher limits.
 
 ---
 
