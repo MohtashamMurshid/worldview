@@ -1,34 +1,60 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useRef } from 'react'
+import { WorldGlobe, type WorldGlobeHandle } from './components/globe/WorldGlobe'
+import { BottomStyleRail } from './components/hud/BottomStyleRail'
+import { TopTelemetryBar } from './components/hud/TopTelemetryBar'
+import { CameraPresetsPanel } from './components/panels/CameraPresetsPanel'
+import { CctvViewerPanel } from './components/panels/CctvViewerPanel'
+import { DisplayControlsPanel } from './components/panels/DisplayControlsPanel'
+import { EntityInspectorPanel } from './components/panels/EntityInspectorPanel'
+import { FeedHealthPanel } from './components/panels/FeedHealthPanel'
+import { LayerManagerPanel } from './components/panels/LayerManagerPanel'
+import { NewsPanel } from './components/panels/NewsPanel'
+import { SearchPanel } from './components/panels/SearchPanel'
+import { SettingsPanel } from './components/panels/SettingsPanel'
+import { TimelinePanel } from './components/panels/TimelinePanel'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useRealtimeOrchestrator } from './hooks/useRealtimeOrchestrator'
+import { useWorldviewStore } from './state/worldviewStore'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const globeRef = useRef<WorldGlobeHandle | null>(null)
+  const cleanUi = useWorldviewStore((state) => state.displayTuning.cleanUi)
+  const showFeedHealth = useWorldviewStore((state) => state.uiSettings.showFeedHealth)
+
+  useRealtimeOrchestrator()
+  useKeyboardShortcuts()
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="app-shell">
+      <TopTelemetryBar />
+      <div className={`workspace-grid ${cleanUi ? 'clean-mode' : ''}`}>
+        {!cleanUi ? (
+          <aside className="left-rail">
+            <SearchPanel onFocusEntity={(entityId) => globeRef.current?.focusEntity(entityId)} />
+            <LayerManagerPanel />
+            <CameraPresetsPanel onFlyTo={(lat, lon, height) => globeRef.current?.flyTo(lat, lon, height)} />
+          </aside>
+        ) : null}
+
+        <main className="viewport-shell">
+          <WorldGlobe ref={globeRef} />
+          <BottomStyleRail />
+        </main>
+
+        {!cleanUi ? (
+          <aside className="right-rail">
+            <DisplayControlsPanel />
+            <SettingsPanel />
+            {showFeedHealth ? <FeedHealthPanel /> : null}
+            <TimelinePanel />
+            <EntityInspectorPanel onCenterEntity={(entityId) => globeRef.current?.focusEntity(entityId)} />
+            <NewsPanel onFocusEntity={(entityId) => globeRef.current?.focusEntity(entityId)} />
+            <CctvViewerPanel />
+          </aside>
+        ) : null}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    </div>
   )
 }
 
